@@ -1,0 +1,5 @@
+Acquire::http::Proxy "http://127.0.0.1:3129";
+Acquire::https::Proxy "http://127.0.0.1:3129";
+Acquire::ftp::Proxy "http://127.0.0.1:3129";
+
+Acquire::http::Pipeline-Depth "0";

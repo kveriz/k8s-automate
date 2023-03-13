@@ -1,0 +1,28 @@
+ansible_ssh_extra_args: "-R3129:localhost:3128"
+
+docker_pkg:
+- docker-ce
+- docker-ce-cli
+- containerd.io
+- docker-buildx-plugin
+- docker-compose-plugin
+
+old_docker_pkg:
+- docker
+- docker-engine
+- docker.io 
+- containerd
+- runc
+
+k8s_pkg:
+- kubelet
+- kubeadm
+- kubectl
+
+common_pkg:
+- apt-transport-https
+- ca-certificates
+- curl
+
+proxy_ip_address: '127.0.0.1'
+proxy_port: '3129'

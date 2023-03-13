@@ -1,0 +1,20 @@
+- name: ensure file keyrings does not exist
+  stat:
+    path: /etc/apt/keyrings/kubernetes-archive-keyring.gpg
+  register: k8s_keyring
+
+- name: add k8s keyring
+  shell: sudo curl -fsSLo /etc/apt/keyrings/kubernetes-archive-keyring.gpg https://packages.cloud.google.com/apt/doc/apt-key.gpg
+  when: not k8s_keyring.stat.exists
+
+- name: add k8s repo
+  shell: echo "deb [signed-by=/etc/apt/keyrings/kubernetes-archive-keyring.gpg] https://apt.kubernetes.io/ kubernetes-xenial main" | sudo tee /etc/apt/sources.list.d/kubernetes.list
+  when: not k8s_keyring.stat.exists
+
+- name: install k8s components
+  become: true
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+  with_items: "{{ k8s_pkg }}"
