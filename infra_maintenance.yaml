@@ -1,0 +1,80 @@
+- hosts: cotp:tarf:csrb
+  become: true
+  
+  tasks:
+  - block:
+    - name: ping
+      ansible.builtin.ping:
+      register: ping
+
+    - name: debug ping
+      ansible.builtin.debug:
+        var: ping
+    tags:
+    - debug
+
+- hosts: postgres
+  become: true
+
+  tasks:
+  - name: check host is a postgres cluster node
+    command:
+      cmd: systemctl status patroni
+    register: postgres_status
+    ignore_errors: true
+    tags:
+    - pg_status
+  
+  - name: check standalone installation
+    command:
+      cmd: "systemctl status {{ unit }}"
+    when: postgres_status.rc != 0
+    register: standalone_status
+    tags:
+    - pg_status
+
+  - block:
+    - name: stop haproxy
+      systemd:
+        name: haproxy 
+        state: stopped
+    
+    - name: stop patroni
+      systemd:
+        name: patroni
+        state: stopped
+    
+    - name: stop etcd
+      systemd:
+        name: etcd
+        state: stopped
+    when: postgres_status.rc == 0
+
+  - name: stop standalone installation
+    systemd:
+      name: "{{ unit }}"
+      state: stopped
+    when: postgres_status.rc != 0
+
+- hosts: kafka
+  become: true
+
+  tasks:
+  - name: check host kafka is a broker
+    command:
+      cmd: systemctl status kafka
+    register: kafka_status
+    tags:
+    - kf_status
+  
+  - name: stop kafka
+    systemd:
+      name: kafka
+      state: stopped
+    when: kafka_status == 0
+
+  - name: stop zookeeper
+    systemd:
+      name: zookeeper
+      state: stopped
+    when: kafka_status != 0

@@ -1,0 +1,17 @@
+- block:
+  - name: create .ssh directory
+    ansible.builtin.file:
+      state: directory
+      recurse: true
+      path: "{{ ansible_env.HOME }}/.ssh"
+      mode: '0700'
+
+  - name: copy ssh key to remote host
+    ansible.builtin.copy:
+      src: "{{ ansible_ssh_public_key_file }}"
+      dest: "{{ ansible_env.HOME }}/.ssh/authorized_keys"
+      mode: '0644'
+    register: ssh_copy_id_result
+  tags:
+  - ssh
+  - ssh/copy_id

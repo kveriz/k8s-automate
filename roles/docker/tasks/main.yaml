@@ -1,0 +1,62 @@
+- name: unistall old docker version
+  become: true
+  apt:
+    name: "{{ item }}"
+    state: 'absent'
+    purge: true
+  with_items: "{{ old_docker_pkg }}"
+
+- name: ensure docker keyring file does not exist
+  stat:
+    path: /etc/apt/keyrings/docker.gpg
+  register: docker_keyring
+
+- name: add docker keyring
+  shell: curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+  when: not docker_keyring.stat.exists
+
+- name: add docker repo
+  shell: echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+  when: not docker_keyring.stat.exists
+
+- name: install docker
+  become: true
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: true
+  with_items: "{{ docker_pkg }}"
+
+- name: check docker hub available
+  shell: docker search alpine
+  ignore_errors: true
+  register: docker_hub_available
+
+- name: check docker systemd directory existance
+  stat:
+    path: /etc/systemd/system/docker.service.d
+  register: docker_proxy_directory
+
+- name: create docker systemd directory
+  become: true
+  file:
+    path: /etc/systemd/system/docker.service.d
+    state: directory
+  when: docker_hub_available.rc != 0 and not docker_proxy_directory.stat.exists
+  register: docker_service_dir
+
+- name: check docker proxy config existance
+  stat:
+    path: /etc/systemd/system/docker.service.d/10-docker-proxy.conf
+  register: docker_proxy_config
+
+- name: copy docker proxy config
+  become: true
+  template:
+    src: 10_docker_proxy.j2
+    dest: "{{ docker_service_dir.path }}/10-docker-proxy.conf"
+  when: docker_service_dir.changed and not docker_proxy_config.stat.exists
+  notify:
+    - restart docker daemon
+
+- include_tasks: containerd.yaml

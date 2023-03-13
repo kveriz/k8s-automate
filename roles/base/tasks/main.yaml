@@ -1,0 +1,49 @@
+- name: include ssh tasks
+  include_tasks: ssh_key.yaml
+  tags:
+  - ssh
+  - ssh/copy_id
+
+- name: create keyring directory
+  become: true
+  file:
+    path: /etc/apt/keyrings
+    mode: 0755
+    state: directory
+    recurse: yes
+
+- name: copy apt proxy config
+  become: true
+  copy:
+    src: 99self
+    dest: /etc/apt/apt.conf.d/99self
+
+- name: check wrong sources
+  command:
+    cmd: grep -r '10.230.212.10' -l /etc/apt
+  register: sources_list
+  ignore_errors: true
+
+- name: remove original source lists
+  become: true
+  file:
+    path: "{{ item }}"
+    state: absent
+  with_items: "{{ sources_list.stdout_lines }}"
+  when: sources_list.rc != 1
+
+- name: add mirrors to apt source lists
+  become: true
+  copy:
+    src: mirror.yandex.list
+    dest: /etc/apt/sources.list.d/mirror.yandex.list
+
+- name: install common packages
+  become: true
+  apt:
+    name: "{{ item }}"
+    state: present
+    update_cache: true
+  with_items: "{{ common_pkg }}"
+
+- include_tasks: swapoff.yaml

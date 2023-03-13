@@ -1,0 +1,40 @@
+# ansible_ssh_extra_args: "-R3129:localhost:3128"
+ansible_become: true
+
+ansible_ssh_private_key_file: /Users/kverizhnikov/.ssh/cotp_inno_infra # set your private key
+ansible_ssh_user: kverizhnikov@inno.local # set your ssh user with sudo permisions
+ansible_ssh_extra_args: -o StrictHostKeyChecking=accept-new
+
+docker_pkg:
+- docker-ce
+- docker-ce-cli
+- containerd.io
+- docker-buildx-plugin
+- docker-compose-plugin
+
+old_docker_pkg:
+- docker
+- docker-engine
+- docker.io 
+- containerd
+- runc
+
+k8s_pkg:
+- kubelet
+- kubeadm
+- kubectl
+
+common_pkg:
+- apt-transport-https
+- ca-certificates
+- curl
+
+proxy_ip_address: '127.0.0.1'
+proxy_port: '3129'
+
+bootstrap_token: 'eduwnb.wjatn34igoh78zp8'
+pod_network_cidr: '10.100.0.0/16'
+
+unit: postgresql-15.service
+
+ssh_key_file:

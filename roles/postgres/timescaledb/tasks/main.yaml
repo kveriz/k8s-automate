@@ -1,0 +1,110 @@
+- name: install common packages
+  ansible.builtin.apt:
+    state: present
+    name: jq
+  ignore_errors: true
+  tags:
+  - jq
+  - patroni
+  - patroni/configure
+
+- name: debug
+  ansible.builtin.debug:
+    msg: "This is just a test ansible block wich is calling by tag 'debug'"
+  tags:
+  - debug
+
+- block:
+  - name: check timescaledb source repo exists
+    ansible.builtin.stat:
+      path: "{{ timescaledb_apt_list_location }}"
+    register: source_file_exists
+
+  - name: debug timescaledb source repo exists
+    ansible.builtin.debug:
+      var: "{{ source_file_exists }}"
+
+  - block:
+    - name: add apt timescaledb source repo
+      ansible.builtin.template:
+        src: timescaledb-repository.list.j2
+        dest: "{{ timescaledb_apt_list_location }}"
+
+    - name: add gpg key
+      ansible.builtin.shell:
+        wget -q "{{ timescaledb_gpg_key_address }}" -O- | apt-key add -
+
+    - name: update apt cache
+      ansible.builtin.apt:
+        update_cache: true
+    when: not source_file_exists.stat.exists
+
+  - name: purge timescaledb metapackage
+    ansible.builtin.apt:
+      purge: true
+      name: "{{ timescaledb_metapackage }}"
+      state: absent
+    ignore_errors: true
+
+  - name: upgrade timescaledb packages
+    ansible.builtin.apt:
+      only_upgrade: true
+      state: present
+      name: "{{ item }}"  
+    with_items: "{{ timescaledb_packages }}"
+    ignore_errors: true
+    register: upgrade_result
+
+  - name: debug upgrade_result
+    ansible.builtin.debug:
+      var: "{{ item }}"
+    with_items: "{{ upgrade_result.results }}"
+
+  - name: install timescaledb packages
+    ansible.builtin.apt:
+      update_cache: true
+      name: "{{ item }}"  
+      state: present
+    with_items: "{{ timescaledb_packages }}"
+    when: item not in upgrade_result.results
+    register: install_result
+  tags:
+  - timescaledb
+  - timescaledb/install
+
+- block:
+  - name: get patroni cluster id
+    ansible.builtin.shell:
+      patronictl -c /etc/patroni/patroni.yml list --format json | jq -r '.[0].Cluster'
+    register: cluster_id
+    tags:
+    - patroni/configure
+    - patroni/get_cluster_id
+  
+  - name: debug
+    ansible.builtin.debug:
+      var: cluster_id.stdout
+    tags:
+    - patroni/get_cluster_id
+
+  - block:
+    - name: tune patroni cluster config
+      ansible.builtin.shell:
+        patronictl -c /etc/patroni/patroni.yml edit-config "{{ cluster_id.stdout }}" -p shared_preload_libraries=pg_stat_statements,timescaledb --force
+      register: tune_result
+    
+    - name: check patroni config
+      ansible.builtin.pause:
+        prompt: "Press any key or Ctrl+C to abort"
+
+    - name: restart patroni cluster
+      ansible.builtin.shell:
+        patronictl -c /etc/patroni/patroni.yml restart --force "{{ cluster_id.stdout }}"
+      when: tune_result.rc == 0
+    when:
+    - cluster_id.rc == 0
+    tags:
+    - patroni/configure
+  tags:
+  - patroni
+  - patroni/configure

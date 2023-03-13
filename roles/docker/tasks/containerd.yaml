@@ -1,0 +1,18 @@
+- name: check /etc/containerd
+  stat:
+    path: /etc/containerd
+  register: containerd_config_dir
+
+- name: create /etc/containerd
+  become: true
+  file:
+    path: /etc/containerd
+    mode: 0755
+    state: directory
+  when: not containerd_config_dir.stat.exists
+
+- name: create containerd config
+  shell:
+    cmd: containerd config default | sed 's#SystemdCgroup = false#SystemdCgroup = true#g' | tee /etc/containerd/config.toml
+  notify:
+    - restart containerd

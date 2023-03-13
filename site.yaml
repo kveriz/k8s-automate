@@ -1,0 +1,23 @@
+---
+- hosts: all
+  become: false
+  roles:
+  - base
+
+# - name: master nodes playbooks
+#   import_playbook: master.yaml
+# 
+# - name: worker nodes playbooks
+#   import_playbook: worker.yaml
+
+- hosts: postgres
+  become: true
+  gather_facts: false
+  roles:
+  - role: postgres/timescaledb
+
+- hosts: clickhouse
+  become: true
+  gather_facts: false
+  roles:
+  - role: clickhouse/kafka-client

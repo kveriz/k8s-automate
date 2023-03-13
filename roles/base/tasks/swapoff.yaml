@@ -1,0 +1,2 @@
+- name: disable swap
+  ansible.builtin.shell: swapoff -av

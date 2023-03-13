@@ -1,0 +1,10 @@
+absent_ssl_certificates:
+- kafka-client.pem
+- kafka-client.key
+
+app_base_path: /app/clickhouse
+addition_config_path: config/config.d
+certificates_path: certs
+
+config:
+  debug_level: all

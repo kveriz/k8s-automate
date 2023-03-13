@@ -1,0 +1,20 @@
+timescaledb_apt_list_location: /etc/apt/sources.list.d/timescaledb-repository.list
+
+timescaledb_repo_list:
+- deb http://d0sphr-rec002lk.innodev.local/common-apt-proxy-timescaledb/debian/ buster main
+- deb http://d0sphr-rec002lk.innodev.local/common-apt-proxy-timescaledb/ubuntu/ focal main
+- deb http://d0sphr-rec002lk.innodev.local/common-apt-proxy-timescaledb/ubuntu/ jammy main
+
+timescaledb_gpg_key_address: http://d0sphr-rec002lk.innodev.local/gpg/timescaledb.gpg
+
+major_postgres_version: '15'
+
+timescaledb_version: '2.14.2'
+
+timescaledb_metapackage: timescaledb-2-postgresql-15
+
+timescaledb_packages:
+- timescaledb-2-loader-postgresql-15=2.16.1~debian10
+- timescaledb-toolkit-postgresql-15=1:1.18.0~debian10
+- timescaledb-tools=0.16.0~debian10
+- timescaledb-2-postgresql-15=2.16.1~debian10

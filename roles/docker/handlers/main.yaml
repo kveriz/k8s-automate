@@ -1,0 +1,13 @@
+- name: reload docker daemon
+  become: true
+  systemd:
+    name: docker
+    state: "restarted"
+    daemon_reload: true
+  listen: "restart docker daemon"
+
+- name: restart containerd
+  systemd:
+    name: containerd
+    state: restarted
+  listen: "restart containerd"

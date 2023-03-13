@@ -1,0 +1,12 @@
+<clickhouse>
+    <kafka>
+        <security_protocol>ssl</security_protocol>
+    {% for cert in certificates %}
+    {% set type = cert.split('.') %}
+<ssl_{{ type[0] }}_location>{{ app_base_path }}/{{ certificates_path }}/{{ cert }}</ssl_{{ type[0] }}_location>
+    {% endfor %}
+    <debug>{{ config.debug_level | d('all') }}</debug>
+        <enable_ssl_certificate_verification>false</enable_ssl_certificate_verification>
+        <ssl_endpoint_identification_algorithm>none</ssl_endpoint_identification_algorithm>
+    </kafka>
+</clickhouse>

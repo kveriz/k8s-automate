@@ -1,0 +1,68 @@
+- name: create temp directory
+  ansible.builtin.file:
+    state: directory
+    path: "{{ app_base_path }}/{{ env }}"
+  tags:
+  - clickhouse/debug
+
+- block:
+  - name: remove temp directory
+    ansible.builtin.file:
+      state: absent
+      path: "{{ app_base_path }}/{{ env }}"
+
+  - name: remove absent ssl certificates
+    ansible.builtin.file:
+      state: absent
+      path: "{{ app_base_path }}/{{ certificates_path }}/{{ item }}"
+    with_items: "{{ absent_ssl_certificates }}"
+    ignore_errors: true
+  tags:
+  - clickhouse/cleanup
+
+- block:
+  - name: copy tls certificates
+    ansible.builtin.copy:
+      content: "{{ item.value }}"
+      dest: "{{ app_base_path }}/{{ certificates_path }}/{{ item.key }}"
+      mode: '0644'
+      owner: clickhouse
+      group: clickhouse
+    with_dict: "{{ certificates }}"
+
+  - name: copy kafka-client config
+    ansible.builtin.template:
+      src: kafka-client.xml.j2
+      dest: "{{ app_base_path }}/{{ addition_config_path }}/kafka-config.xml"
+      mode: '0644'
+      owner: clickhouse
+      group: clickhouse
+    register: config_results
+
+  - name: debug config_results
+    ansible.builtin.debug:
+      var: "{{ config_results }}"
+
+  - name: show kafka-client config
+    ansible.builtin.shell:
+      cat "{{ config_results.dest }}"
+    register: config_output
+    when: config_results is defined
+
+  - ansible.builtin.debug: 
+      msg: "{{ config_output.stdout_lines }}"
+
+  - name: check kafka-client config
+    ansible.builtin.pause:
+      prompt: "Check configs and press any key to reload systemd unit or press Ctrl+C to cancel "
+
+  - name: reload systemd unit
+    ansible.builtin.systemd:
+      state: restarted
+      name: clickhouse-server.service
+  tags:
+  - clickhouse/kafka_client
+
+
+
+
